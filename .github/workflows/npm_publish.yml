@@ -1,0 +1,48 @@
+name: Publish to NPM
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [PicGo,PicX]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  
+
+jobs:
+  publish-to-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch code
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+
+      - name: Use Node.js
+        uses: actions/setup-node@main
+        with:
+          node-version: latest
+          registry-url: https://registry.npmjs.org
+
+      - name:  'Automated Version Bump'
+        uses:  'phips28/gh-action-bump-version@master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          default: patch
+          patch-wording:     'RELEASE,alpha,PicX,PicGo'
+          skip-tag:  'true'
+
+      - name: Publish to NPM
+        run: npm publish || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Delete old workflow run using Personal Token
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 0
